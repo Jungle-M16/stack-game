@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #game {
+            position: relative;
+            width: 360px; /* 18 * 20px */
+            height: 480px; /* 24 * 20px */
+            background-color: #fff;
+            border: 2px solid #000;
+        }
+        .block {
+            position: absolute;
+            height: 20px;
+            background-color: #3498db;
+        }
+        #score, #highScore, #message, #difficulty {
+            font-size: 16px;
+            font-weight: bold;
+            color: #000;
+            margin: 5px;
+        }
+        #message {
+            font-size: 14px;
+            color: #d32f2f;
+        }
+        #difficulty {
+            margin-top: 20px;
+        }
+        .button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <div id="highScore">High Score: 0</div>
+        <div id="message"></div>
+        <div id="game"></div>
+        <div id="difficulty">
+            <label for="difficultySelect">Difficulty:</label>
+            <select id="difficultySelect">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
+        <button class="button" onclick="resetGame()">Restart Game</button>
+    </div>
+
+    <script>
+        const game = document.getElementById('game');
+        const scoreDisplay = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('highScore');
+        const messageDisplay = document.getElementById('message');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const gridWidth = 18;
+        const gridHeight = 24;
+        const blockHeight = 20;
+        let blockWidth;
+        let currentRow;
+        let direction;
+        let position;
+        let speed;
+        let blocks;
+        let animation;
+        let hue;
+        let score;
+        let highScore = localStorage.getItem('highScore') || 0;
+        highScoreDisplay.textContent = `High Score: ${highScore}`;
+
+        const difficulties = {
+            easy: { speed: 2, initialWidth: 120 },
+            medium: { speed: 4, initialWidth: 100 },
+            hard: { speed: 6, initialWidth: 80 },
+        };
+
+        function getSelectedDifficulty() {
+            return difficulties[difficultySelect.value];
+        }
+
+        function createBlock(row, width, left) {
+            const block = document.createElement('div');
+            block.classList.add('block');
+            block.style.width = `${width}px`;
+            block.style.top = `${(gridHeight - row - 1) * blockHeight}px`;
+            block.style.left = `${left}px`;
+            block.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+            game.appendChild(block);
+            return block;
+        }
+
+        function startGame() {
+            const difficulty = getSelectedDifficulty();
+            blockWidth = difficulty.initialWidth;
+            speed = difficulty.speed;
+            currentRow = 0;
+            direction = 1;
+            position = 0;
+            hue = 0;
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            messageDisplay.textContent = '';
+            blocks = [createBlock(currentRow, blockWidth, position)];
+            animation = requestAnimationFrame(update);
+        }
+
+        function update() {
+            position += speed * direction;
+            if (position <= 0 || position + blockWidth >= game.clientWidth) {
+                direction *= -1;
+            }
+            blocks[currentRow].style.left = `${position}px`;
+            animation = requestAnimationFrame(update);
+        }
+
+        function placeBlock() {
+            cancelAnimationFrame(animation);
+
+            if (currentRow > 0) {
+                const previousBlock = blocks[currentRow - 1];
+                const currentLeft = parseInt(blocks[currentRow].style.left);
+                const previousLeft = parseInt(previousBlock.style.left);
+                const overlap = Math.min(currentLeft + blockWidth, previousLeft + blockWidth) - Math.max(currentLeft, previousLeft);
+
+                if (overlap <= 0) {
+                    messageDisplay.textContent = `Game Over! Final Score: ${score}`;
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('highScore', highScore);
+                        highScoreDisplay.textContent = `High Score: ${highScore}`;
+                    }
+                    return;
+                }
+
+                blockWidth = overlap;
+                blocks[currentRow].style.width = `${blockWidth}px`;
+                blocks[currentRow].style.left = `${Math.max(currentLeft, previousLeft)}px`;
+
+                score += overlap;
+                scoreDisplay.textContent = `Score: ${score}`;
+            }
+
+            if (currentRow < gridHeight - 1) {
+                currentRow++;
+                position = 0;
+                direction = 1;
+                hue += 20; // Change hue for the next block
+                blocks.push(createBlock(currentRow, blockWidth, position));
+                animation = requestAnimationFrame(update);
+            } else {
+                messageDisplay.textContent = `You Win! Final Score: ${score}`;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('highScore', highScore);
+                    highScoreDisplay.textContent = `High Score: ${highScore}`;
+                }
+            }
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animation); // Stop any ongoing animations
+            game.innerHTML = ''; // Clear the game area
+            startGame(); // Restart the game
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                placeBlock();
+            }
+        });
+
+        game.addEventListener('click', placeBlock);
+
+        startGame();
+    </script>
+</body>
+</html>
