@@ -1,6 +1,6 @@
-# stack-game
-
 # Stack Game
+
+https://jungle-m16.github.io/stack-game/
 
 A simple HTML, CSS, and JavaScript-based stack game where players stack blocks that bounce back and forth on an 18x24 grid. The blocks reduce in size according to the amount overshot by the previous block.
 
